@@ -1,25 +1,8 @@
-* ;;
-** deps.edn
-#+NAME: deps.edn
-#+begin_src clojure :tangle ./deps.edn
-{:deps 
- {org.clojure/clojure            {:mvn/version "1.10.1"}
-  org.clojure/clojurescript      {:mvn/version "1.10.597"}}}
-
-#+end_src
-
-* core
-** ns
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (ns rbg.core
   (:require [clojure.string :as s]))
 
 #?(:cljs (enable-console-print!))
 
-#+END_SRC
-
-** helpers
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn hsl-str
   "Formats h s l color variables into css rule as a string."
   [h s l]
@@ -51,10 +34,6 @@
         val (str (second attr) ";\n")]
     (str prop val)))
 
-#+END_SRC
-
-** predicates
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn hiccup?
   [item]
   (and
@@ -68,10 +47,6 @@
    (keyword? (first item))
    (map? (second item))))
 
-#+END_SRC
-
-** css-compiler
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn rule->css
   [rule]
   (let [tag (str (key->str (first rule)) " {\n")
@@ -85,10 +60,6 @@
     (apply str
            (concat (map my-css rule)))))
 
-#+END_SRC
-
-** html-compiler
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn key->tags
   [key]
   (let [tag (key->str key)
@@ -134,10 +105,7 @@
     (hiccup->html hiccup)
     (apply str
            (concat (map my-html hiccup)))))
-#+END_SRC
 
-** svg-elements
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn svg
   [[w h sc] content]
   [:svg {:width w
@@ -175,10 +143,6 @@
         [ny1 ny2] (map + [oy1 oy2] (repeat y))]
     (assoc line 1 {:x1 nx1 :y1 ny1 :x2 nx2 :y2 ny2})))
 
-#+END_SRC
-
-** generator
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn gen-bg-data
   [w h sc]
   (let [lines [(line [0 0] [1 1])
@@ -202,10 +166,6 @@
        (gen-bg-data w h sc)
        (svg-style (my-css (gen-css))))))
 
-#+END_SRC
-
-** -main
-#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn str->int [s]
   #?(:clj  (java.lang.Integer/parseInt s)
      :cljs (js/parseInt s)))
@@ -222,23 +182,3 @@
    (let [[w h] (wxh size)
          sc (str->int sc)]
      (println (my-html (gen-bg w h sc))))))
-
-#+END_SRC
-* run
-You can run rbg in your terminal using clj:
-
-Navigate to the project's top-level folder (where deps.edn file is) and run: 
-
-~clj -m rbg.core~ which prints an svg string to output. 
-
-The default arguments are a size of "1920x1080" and a cell size of 10 pixels.
-
-You can run with custom resolutions and cell sizes by passing arguments:
-
-~clj -m rbg.core 500x300 10~
-
-CAUTION: a small cell size will result in a very large SVG file. Recommmended minimum is a cell size of 10 pixels. 
-
-You can also run this program with a Clojurescript environment. I like lumo:
-
-~lumo --classpath src -m rbg.core~
