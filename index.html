@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>rbg</title>
+<style>
+/*!
+MIT License
+
+Copyright (c) 2016 Fabien Sa
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+
+/*
+| The mu framework v0.3.1
+| BafS 2016-2018
+*/
+
+*, *:after, *:before {
+  box-sizing: border-box;
+}
+
+body {
+  font: 18px/1.6 Georgia, "Times New Roman", Times, serif;
+}
+
+table, input {
+  font-size: 16px;
+}
+
+button, select {
+  font-size: 14px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.2;
+}
+
+.ln {
+  stroke: #2e3440;
+  stroke-width: 2px;
+}
+
+.clr {
+  fill: none;
+}
+
+.attn {
+  fill: rgb(234, 82, 111);
+}
+
+.face {
+  fill: #a3be8c;
+  fill-rule: evenodd;
+}
+
+rect, line, path, polygon, polyline, circle {
+  vector-effect: non-scaling-stroke;
+}
+
+table {
+  width: auto;
+}
+
+th, td {
+  vertical-align: top;
+  padding: 5px;
+  border: 1px solid #ddd;
+}
+
+table ul {
+  list-style-type: none;
+  padding-left: 4px;
+  margin: 0;
+}
+
+table li:before {
+  content: ▢ ;
+}
+
+table p {
+  margin: 0;
+}
+
+.figure {
+  padding-left: 7px;
+}
+
+.figure p {
+  font-size: smaller;
+  font-style: italic;
+}
+
+code {
+  padding: 8px;
+  background: #2e3440;
+  color: #dedee9;
+  white-space: pre-wrap;
+  display: inline-block;
+  width: 100%;
+}
+
+@media (print) {
+
+  .pagebreak {
+    page-break-after: always;
+  }
+
+}
+
+body {
+  margin: 40px auto;
+  max-width: 760px;
+  color: #444;
+  padding: 0 20px;
+}
+
+a {
+  color: #07c;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #059;
+  text-decoration: underline;
+}
+
+hr {
+  border: 0;
+  margin: 25px 0;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  text-align: left;
+  padding-bottom: 25px;
+}
+
+td, th {
+  padding: 5px;
+  vertical-align: bottom;
+}
+
+td, th, hr {
+  border-bottom: 1px solid #ddd;
+}
+
+pre {
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
+button, select {
+  background: #ddd;
+  border: 0;
+  padding: 9px 20px;
+}
+
+input {
+  padding: 5px;
+  vertical-align: bottom;
+}
+
+button:hover {
+  background: #eee;
+}
+
+textarea {
+  border-color: #ccc;
+}
+
+.row {
+  display: block;
+  width: auto;
+  min-height: 1px;
+}
+
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.row, .c {
+  float: left;
+}
+
+table, .g2, .g3, .g3-2, .m2, .m3, .m3-2 {
+  width: 100%;
+}
+
+.g2 {
+  width: 50%;
+}
+
+.m2 {
+  margin-left: 50%;
+}
+
+.g3 {
+  width: 33.33%;
+}
+
+.g3-2 {
+  width: 66.66%;
+}
+
+.m3 {
+  margin-left: 33.33%;
+}
+
+.m3-2 {
+  margin-left: 66.66%;
+}</style>
+</head>
+<body>
+<main>
+<h1>rbg</h1>
+<p>A program that makes a random background from 'tiled lines'.</p>
+<h2>ns</h2>
+<div class="cm-container">
+<code class="clj">(ns rbg.core
+  (:require [clojure.string :as s]))
+</code>
+</div>
+<h2>helpers</h2>
+<div class="cm-container">
+<code class="clj">(defn hsl-str
+  [h s l]
+  (str "hsl(" h ", " s "%, " l "%)"))
+
+(defn random-color
+  []
+  (hsl-str (rand-int 360) (rand-int 101) (rand-int 101)))
+
+(def line-attrs
+  {:vector-effect "non-scaling-stroke"
+   :stroke-width 2
+   :stroke-linecap "round"
+   :fill "none"})
+
+(def rect-attrs {})
+
+(defn key->str
+  [key]
+  (s/replace-first (str key) #":" ""))
+
+(defn attr->css
+  [attr]
+  (let [prop (str (key->str (first attr)) ": ")
+        val (str (second attr) ";\n")]
+    (str prop val)))
+</code>
+</div>
+<h2>predicates</h2>
+<div class="cm-container">
+<code class="clj">(defn hiccup?
+  [item]
+  (and
+   (vector? item)
+   (keyword? (first item))))
+
+(defn css-rule?
+  [item]
+  (and 
+   (vector? item)
+   (keyword? (first item))
+   (map? (second item))))
+</code>
+</div>
+<h2>css-compiler</h2>
+<div class="cm-container">
+<code class="clj">(defn rule->css
+  [rule]
+  (let [tag (str (key->str (first rule)) " {\n")
+        props (apply str (map attr->css (second rule)))]
+    (str tag props "}\n")))
+
+(defn my-css
+  [rule]
+  (if (css-rule? rule)
+    (rule->css rule)
+    (apply str
+           (concat (map my-css rule)))))
+</code>
+</div>
+<h2>html-compiler</h2>
+<div class="cm-container">
+<code class="clj">(defn key->tags
+  [key]
+  (let [tag (key->str key)
+        o (str "<" tag ">")
+        c (str "<" "/" tag ">\n")]
+    [o c]))
+
+(defn insert-props
+  [tag props]
+  (if (> (count props) 0)
+    (s/replace tag #">" (str " " props ">"))
+    tag))
+
+(defn attr->html
+  [attr]
+  (let [prop (str (key->str (first attr)) "='")
+        val (str (second attr) "' ")]
+    (str prop val)))
+
+(declare my-html)
+(defn hiccup->html
+  [[k m & content]]
+  (let [[o c] (key->tags k)
+        [m content] (if (map? m)
+                      [m (if content content (list nil))]
+                      [{} (conj content m)])
+        props (apply str (map attr->html m))
+        o (insert-props o props)]
+    (cond
+      ;; snippet is empty
+      (not (first content))
+      (str o c)
+      ;; snippet contains a string
+      (and (string? (first content)) (= (count content) 1))
+      (str o (first content) c)
+      ;; snippet contains nested snippets
+      :else
+      (str o (my-html content) c))))
+
+(defn my-html
+  [hiccup]
+  (if (hiccup? hiccup)
+    (hiccup->html hiccup)
+    (apply str
+           (concat (map my-html hiccup)))))
+</code>
+</div>
+<h2>svg-elements</h2>
+<div class="cm-container">
+<code class="clj">(defn svg
+  [[w h sc] content]
+  [:svg {:width w
+         :height h
+         :viewbox (str "0 0 " w " " h)
+         :xmlns "http://www.w3.org/2000/svg"}
+   [:g {:transform (str "scale(" sc ")")} content]])
+
+(defn svg-style
+  "Wraps a css string in CDATA tags for embedding inside svg elements."
+  [css-str]
+  [:style {:type "text/css"}
+   (str "<" "![CDATA[\n"
+        css-str
+        "\n]]" ">")])
+
+(defn rectangle
+  [w h]
+  [:rect {:width w
+          :height h}])
+
+(defn line
+  [a b]
+  (let [[x1 y1] a
+        [x2 y2] b]
+    [:line {:x1 x1
+            :y1 y1
+            :x2 x2
+            :y2 y2}]))
+
+(defn move-line
+  [[x y] line]
+  (let [[ox1 oy1 ox2 oy2] (map #(get-in line [1 %]) [:x1 :y1 :x2 :y2])
+        [nx1 nx2] (map + [ox1 ox2] (repeat x))
+        [ny1 ny2] (map + [oy1 oy2] (repeat y))]
+    (assoc line 1 {:x1 nx1 :y1 ny1 :x2 nx2 :y2 ny2})))
+</code>
+</div>
+<h2>generator</h2>
+<div class="cm-container">
+<code class="clj">(defn gen-bg-data
+  [w h sc]
+  (let [lines [(line [0 0] [1 1])
+               (line [0 1] [1 0])]]
+    (concat
+     [(rectangle (/ w sc) (/ h sc))]
+     (for [x (range (/ w sc))
+           y (range (/ h sc))]
+       (move-line [x y] (get lines (rand-int 2)))))))
+
+(defn gen-css
+  []
+  (let [bg-col (random-color)
+        l-col (random-color)]
+    [[:line (assoc line-attrs :stroke l-col)]
+     [:rect (assoc rect-attrs :fill bg-col)]]))
+
+(defn gen-bg
+  [w h sc]
+  (svg [w h sc] (conj
+       (gen-bg-data w h sc)
+       (svg-style (my-css (gen-css))))))
+</code>
+</div>
+<h2>Making it run.</h2>
+<p>And We can play around with it here.</p>
+<div class="cm-container">
+<code class="clj">(defn init []
+  (let [canvas (js/document.getElementById "canvas")]
+    (set! (.-innerHTML canvas) (my-html (gen-bg 100 100 10)))))
+
+(do (init) nil)
+</code>
+</div>
+<p>Canvas:</p>
+<div>
+<div id="canvas">
+</div>
+</div>
+<p>It works!</p>
+</main>
+<link href="https://unpkg.com/klipse@7.9.6/dist/codemirror.css" rel="stylesheet" type="text/css">
+<link href="https://codemirror.net/theme/nord.css" rel="stylesheet" type="text/css">
+<style>
+.cm-container {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.CodeMirror {
+  border: none;
+  padding: 8px;
+}
+</style>
+<script>
+window.klipse_settings = {
+  selector: '.clj',
+  codemirror_options_in: {
+    lineWrapping: true,
+    theme: 'nord',
+  },
+  codemirror_options_out: {
+    lineWrapping: true,
+    theme: 'nord',
+  }
+}
+</script>
+<script src="https://unpkg.com/klipse@7.9.6/dist/klipse_plugin.js">
+</script>
+</body>
+</html>
