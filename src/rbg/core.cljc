@@ -1,28 +1,21 @@
 (ns rbg.core
   (:require [clojure.string :as s]))
 
-#?(:cljs (enable-console-print!))
-
 (defn hsl-str
-  "Formats h s l color variables into css rule as a string."
   [h s l]
   (str "hsl(" h ", " s "%, " l "%)"))
 
 (defn random-color
-  "Creates an hsl css color string with random H, S, and L."
   []
   (hsl-str (rand-int 360) (rand-int 101) (rand-int 101)))
 
 (def line-attrs
-  "Base css attributes for svg line elements."
   {:vector-effect "non-scaling-stroke"
    :stroke-width 2
    :stroke-linecap "round"
    :fill "none"})
 
-(def rect-attrs
-  "Base css attributes for svg rect elements."
-  {})
+(def rect-attrs {})
 
 (defn key->str
   [key]
@@ -64,7 +57,7 @@
   [key]
   (let [tag (key->str key)
         o (str "<" tag ">")
-        c (str "</" tag ">\n")]
+        c (str "<" "/" tag ">\n")]
     [o c]))
 
 (defn insert-props
@@ -118,9 +111,9 @@
   "Wraps a css string in CDATA tags for embedding inside svg elements."
   [css-str]
   [:style {:type "text/css"}
-   (str "<![CDATA[\n"
+   (str "<" "![CDATA[\n"
         css-str
-        "\n]]>")])
+        "\n]]" ">")])
 
 (defn rectangle
   [w h]
