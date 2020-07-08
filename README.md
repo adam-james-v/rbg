@@ -1,6 +1,9 @@
 # rbg
 generates a random background of 'tiled lines'. This is a very simple toy :)
 
+You can interact with the code in your browser if you'd like:
+[https://adam-james-v.github.io/rbg/](https://adam-james-v.github.io/rbg/)
+
 ![example background](./resources/example.svg)
 
 The colors are randomized as well :)
