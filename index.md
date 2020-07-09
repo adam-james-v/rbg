@@ -1,6 +1,14 @@
+# rbg
+Random Background Generator (rbg) is a simple clojure project.
+
+## ns
+{kl}
 (ns rbg.core
   (:require [clojure.string :as s]))
+{kl}
 
+## helpers
+{kl}
 (defn hsl-str
   [h s l]
   (str "hsl(" h ", " s "%, " l "%)"))
@@ -12,14 +20,10 @@
 (def line-attrs
   {:vector-effect "non-scaling-stroke"
    :stroke-width 2
-   :stroke-linecap "round"})
+   :stroke-linecap "round"
+   :fill "none"})
 
-(defn css-rule?
-  [item]
-  (and 
-   (vector? item)
-   (keyword? (first item))
-   (map? (second item))))
+(def rect-attrs {})
 
 (defn key->str
   [key]
@@ -30,7 +34,26 @@
   (let [prop (str (key->str (first attr)) ": ")
         val (str (second attr) ";\n")]
     (str prop val)))
+{kl}
 
+## predicates
+{kl}
+(defn hiccup?
+  [item]
+  (and
+   (vector? item)
+   (keyword? (first item))))
+
+(defn css-rule?
+  [item]
+  (and 
+   (vector? item)
+   (keyword? (first item))
+   (map? (second item))))
+{kl}
+
+## css-compiler
+{kl}
 (defn rule->css
   [rule]
   (let [tag (str (key->str (first rule)) " {\n")
@@ -43,13 +66,10 @@
     (rule->css rule)
     (apply str
            (concat (map my-css rule)))))
+{kl}
 
-(defn hiccup?
-  [item]
-  (and
-   (vector? item)
-   (keyword? (first item))))
-
+## html-compiler
+{kl}
 (defn key->tags
   [key]
   (let [tag (key->str key)
@@ -95,7 +115,10 @@
     (hiccup->html hiccup)
     (apply str
            (concat (map my-html hiccup)))))
+{kl}
 
+## svg-elements
+{kl}
 (defn svg
   [[w h sc] content]
   [:svg {:width w
@@ -132,7 +155,10 @@
         [nx1 nx2] (map + [ox1 ox2] (repeat x))
         [ny1 ny2] (map + [oy1 oy2] (repeat y))]
     (assoc line 1 {:x1 nx1 :y1 ny1 :x2 nx2 :y2 ny2})))
+{kl}
 
+## generator
+{kl}
 (defn gen-bg-data
   [w h sc]
   (let [lines [(line [0 0] [1 1])
@@ -148,28 +174,31 @@
   (let [bg-col (random-color)
         l-col (random-color)]
     [[:line (assoc line-attrs :stroke l-col)]
-     [:rect (assoc {} :fill bg-col)]]))
+     [:rect (assoc rect-attrs :fill bg-col)]]))
 
 (defn gen-bg
   [w h sc]
-  {:pre [(>= sc 5)]}
   (svg [w h sc] (conj
        (gen-bg-data w h sc)
        (svg-style (my-css (gen-css))))))
+{kl}
 
-(defn str->int [s]
-  #?(:clj  (java.lang.Integer/parseInt s)
-     :cljs (js/parseInt s)))
+## Making it run.
+And We can play around with it here.
 
-(defn wxh
-  [size]
-  (map str->int (s/split size #"x")))
+{kl}
+(defn init []
+  (let [canvas (js/document.getElementById "canvas")]
+    (set! (.-innerHTML canvas) (my-html (gen-bg 100 100 10)))))
 
-(defn -main
-  ([]
-   (-main "1920x1080" "10"))
+(do (init) nil)
+{kl}
 
-  ([size sc]
-   (let [[w h] (wxh size)
-         sc (str->int sc)]
-     (println (my-html (gen-bg w h sc))))))
+Canvas:
+
+{ex}
+[:div#canvas]
+{ex}
+
+It works.
+
