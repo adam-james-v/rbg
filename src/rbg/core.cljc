@@ -3,9 +3,12 @@
 
 (defn hsl-str
   [h s l]
+  {:pre [(and (<= 0 h 359)
+              (<= 0 s 100)
+              (<= 0 l 100))]}
   (str "hsl(" h ", " s "%, " l "%)"))
 
-(defn random-color
+(defn random-colour
   []
   (hsl-str (rand-int 360) (rand-int 101) (rand-int 101)))
 
@@ -133,7 +136,7 @@
         [ny1 ny2] (map + [oy1 oy2] (repeat y))]
     (assoc line 1 {:x1 nx1 :y1 ny1 :x2 nx2 :y2 ny2})))
 
-(defn gen-bg-data
+(defn gen-data
   [w h sc]
   (let [lines [(line [0 0] [1 1])
                (line [0 1] [1 0])]]
@@ -145,8 +148,8 @@
 
 (defn gen-css
   []
-  (let [bg-col (random-color)
-        l-col (random-color)]
+  (let [bg-col (random-colour)
+        l-col (random-colour)]
     [[:line (assoc line-attrs :stroke l-col)]
      [:rect (assoc {} :fill bg-col)]]))
 
@@ -154,7 +157,7 @@
   [w h sc]
   {:pre [(>= sc 5)]}
   (svg [w h sc] (conj
-       (gen-bg-data w h sc)
+       (gen-data w h sc)
        (svg-style (my-css (gen-css))))))
 
 (defn str->int [s]

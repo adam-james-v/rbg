@@ -60,6 +60,20 @@ The only dependency that I need is clojure.string because it has the *replace* f
 
 #+END_SRC
 
+*** test-ns
+#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
+(ns rbg.core-test
+  (:require [clojure.test :refer :all]
+            [rbg.core :as rbg]))
+
+#+END_SRC
+
+#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
+
+(is (= 5 (+ 2 3)))
+
+#+END_SRC
+
 ** colour
 Since I'm using svg as the output, I can use CSS to style the background and lines. Colour is fun to randomize and is simple enough to do. You can use random RGB values by selecting an integer between 0 and 256, but I might want to disallow 'ugly' sections of the colour spectrum in the future. I think that using HSL (Hue, Saturation, and Light) colour specifications will let me do that better. I could limit the Saturation and Lightness to be between 50% and 75%, for example, or limit the Hue to only one quadrant of the colour wheel.
 
@@ -70,11 +84,31 @@ Saturation and Lightness both are specified as percent, so select a random integ
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn hsl-str
   [h s l]
+  {:pre [(and (<= 0 h 359)
+              (<= 0 s 100)
+              (<= 0 l 100))]}
   (str "hsl(" h ", " s "%, " l "%)"))
 
-(defn random-color
+(defn random-colour
   []
   (hsl-str (rand-int 360) (rand-int 101) (rand-int 101)))
+
+#+END_SRC
+
+*** colour-tests
+#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
+(deftest hsl-str-validation
+  (testing "hsl-str validation"
+    (testing "throws"
+      (are [h s l] (thrown? AssertionError (rbg/hsl-str h s l))
+        360 0 0
+        0 101 0
+        0 0 101))
+    (testing "succeeds"
+      (are [h s l] (string? (rbg/hsl-str h s l))
+        0 0 0
+        359 100 100
+        237 50 87))))
 
 #+END_SRC
 
@@ -227,7 +261,7 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 
 ** generator
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
-(defn gen-bg-data
+(defn gen-data
   [w h sc]
   (let [lines [(line [0 0] [1 1])
                (line [0 1] [1 0])]]
@@ -239,8 +273,8 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 
 (defn gen-css
   []
-  (let [bg-col (random-color)
-        l-col (random-color)]
+  (let [bg-col (random-colour)
+        l-col (random-colour)]
     [[:line (assoc line-attrs :stroke l-col)]
      [:rect (assoc {} :fill bg-col)]]))
 
@@ -248,8 +282,19 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
   [w h sc]
   {:pre [(>= sc 5)]}
   (svg [w h sc] (conj
-       (gen-bg-data w h sc)
+       (gen-data w h sc)
        (svg-style (my-css (gen-css))))))
+
+#+END_SRC
+
+*** generator-tests
+#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
+(deftest gen-bg-validation-test
+  (testing "gen-bg input validation"
+    (is (thrown? AssertionError (rbg/gen-bg 10 10 1)) 
+        "fails with sc < 5")
+    (is (rbg/hiccup? (rbg/gen-bg 5 5 5))
+        "succeeds with sc >= 5")))
 
 #+END_SRC
 
@@ -291,3 +336,10 @@ CAUTION: a small cell size will result in a very large SVG file. Recommmended mi
 You can also run this program with a Clojurescript environment. I like lumo:
 
 ~lumo --classpath src -m rbg.core~
+
+* scratch
+#+BEGIN_SRC clojure
+(load-file "src/rbg/core.cljc")
+(load-file "test/rbg/core_test.cljc")
+(clojure.test/run-tests 'rbg.core-test)
+#+END_SRC
