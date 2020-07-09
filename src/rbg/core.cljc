@@ -17,35 +17,39 @@
    :stroke-width 2
    :stroke-linecap "round"})
 
+(defn key->str
+  "Turns :key into \"key\"."
+  [key]
+  (apply str (rest (str key))))
+
 (defn css-rule?
   [item]
   (and 
    (vector? item)
    (keyword? (first item))
-   (map? (second item))))
-
-(defn key->str
-  [key]
-  (s/replace-first (str key) #":" ""))
+   (map? (second item))
+   (not (empty? (second item)))))
 
 (defn attr->css
   [attr]
-  (let [prop (str (key->str (first attr)) ": ")
+  (let [prop (str "  " (key->str (first attr)) ": ")
         val (str (second attr) ";\n")]
     (str prop val)))
 
 (defn rule->css
   [rule]
+  {:pre [(css-rule? rule)]}
   (let [tag (str (key->str (first rule)) " {\n")
         props (apply str (map attr->css (second rule)))]
-    (str tag props "}\n")))
+    (str tag props "}")))
 
 (defn my-css
   [rule]
   (if (css-rule? rule)
     (rule->css rule)
-    (apply str
-           (concat (map my-css rule)))))
+    (apply str (interpose "\n\n" 
+                          (concat (map my-css 
+                                       (filter css-rule? rule)))))))
 
 (defn hiccup?
   [item]
@@ -113,7 +117,7 @@
   [:style {:type "text/css"}
    (str "<" "![CDATA[\n"
         css-str
-        "\n]]" ">")])
+        "]]" ">")])
 
 (defn rectangle
   [w h]

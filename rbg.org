@@ -127,6 +127,25 @@ This way, the **stroke-width** is set to 2px, which matches visually.
 
 #+END_SRC
 
+** helpers
+Some functions are useful in a few different contexts. For example, both the html and css compilers need a function that converts a key into a string.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
+(defn key->str
+  "Turns :key into \"key\"."
+  [key]
+  (apply str (rest (str key))))
+
+#+END_SRC
+
+*** helpers-tests
+#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
+(deftest key->str-test
+  (is (= (rbg/key->str :adam) "adam")
+      "':' char is not included in string result."))
+
+#+END_SRC
+
 ** css-compiler
 In my prototype version of rbg, I had a dependency on garden, a clojure library that compiles hiccup-like data structures to css. I thought it would be a useful exercise to eliminate this dependency by writing my own minimal css compiler implementation.
 
@@ -136,30 +155,43 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
   (and 
    (vector? item)
    (keyword? (first item))
-   (map? (second item))))
-
-(defn key->str
-  [key]
-  (s/replace-first (str key) #":" ""))
+   (map? (second item))
+   (not (empty? (second item)))))
 
 (defn attr->css
   [attr]
-  (let [prop (str (key->str (first attr)) ": ")
+  (let [prop (str "  " (key->str (first attr)) ": ")
         val (str (second attr) ";\n")]
     (str prop val)))
 
 (defn rule->css
   [rule]
+  {:pre [(css-rule? rule)]}
   (let [tag (str (key->str (first rule)) " {\n")
         props (apply str (map attr->css (second rule)))]
-    (str tag props "}\n")))
+    (str tag props "}")))
 
 (defn my-css
   [rule]
   (if (css-rule? rule)
     (rule->css rule)
-    (apply str
-           (concat (map my-css rule)))))
+    (apply str (interpose "\n\n" 
+                          (concat (map my-css 
+                                       (filter css-rule? rule)))))))
+
+#+END_SRC
+
+*** css-compiler-tests
+#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
+(deftest rule->css-validation-test
+  (is (thrown? AssertionError (rbg/rule->css [:p]))))
+
+(deftest my-css-test
+  (is (= (rbg/my-css [:tag {:attr "value"}])
+         "tag {\n  attr: value;\n}"))
+  (is (= (rbg/my-css (list [:tag1 {:a "val-a"}]
+                           [:tag2 {:b "val-b"}]))
+         "tag1 {\n  a: val-a;\n}\n\ntag2 {\n  b: val-b;\n}")))
 
 #+END_SRC
 
@@ -234,7 +266,7 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
   [:style {:type "text/css"}
    (str "<" "![CDATA[\n"
         css-str
-        "\n]]" ">")])
+        "]]" ">")])
 
 (defn rectangle
   [w h]
