@@ -40,8 +40,8 @@
   [rule]
   {:pre [(css-rule? rule)]}
   (let [tag (str (key->str (first rule)) " {\n")
-        props (apply str (map attr->css (second rule)))]
-    (str tag props "}")))
+        attrs (apply str (map attr->css (second rule)))]
+    (str tag attrs "}")))
 
 (defn my-css
   [rule]

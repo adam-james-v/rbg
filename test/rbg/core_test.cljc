@@ -1,8 +1,6 @@
 (ns rbg.core-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [rbg.core :as rbg]))
-
-(is (= 5 (+ 2 3)))
 
 (deftest hsl-str-validation
   (testing "hsl-str validation"

@@ -1,12 +1,12 @@
-* ;;
+* ;; :nx:
 #+Title: rbg
 #+SUBTITLE: random-background-generator
 #+AUTHOR: adam-james
 #+STARTUP: overview
 #+PROPERTY: header-args :cache yes :noweb yes :results inline :mkdirp yes :padline yes :async
+#+EXCLUDE_TAGS: nx
+#+OPTIONS: toc:nil
 
-**** published: 2020-07-06
-**** edited: 2020-07-09
 ** deps.edn
 #+NAME: deps.edn
 #+begin_src clojure :tangle ./deps.edn
@@ -17,16 +17,22 @@
 #+end_src
 
 * rbg
-The rbg project is a very simple Clojure project. The output of the program is a randomly-generated background using a simple 'tiled lines' approach. The line orientations, line colour, and background colour are all random. The user can input the output images's width, height, and grid size in pixels.
+*published: 2020-07-06*
+*edited: 2020-07-12*
 
-This is clearly not an 'important' project. The method behind generation is simplistic and the output is not groundbreaking. My purpose for this project is less concerned with the program's usefulness and more focused on the skills required to actually produce the code.
+Random Background Generator (rbg) is a very simple Clojure project that produces a randomly-generated background using a simple 'tiled lines' approach. The line orientations, line colour, and background colour are random. The user can input the resulting images's width, height, and grid size in pixels. You can see the code in action throughout this post, and can see the rendered result at the bottom of the page. It's even possible to edit the generator call and see new results rendered live.
 
-Put simply, the purpose of rbg was to prove to myself that I actually *can* complete code projects. Yes, this is small and simple, but it's a step in the right direction, and I'm proud of that.
+The source code for this project can be found at [[https://github.com/adam-james-v/rbg]].
+
+This is not an important project. The method behind generation is simplistic and the output is not groundbreaking. My purpose for this project is less concerned with the program's usefulness and more focused on the skills required to actually produce the code.
+
+Put simply, the purpose of rbg is to prove to myself that I actually *can* complete code projects. Yes, this is small and simple, but it's a step in the right direction, and I'm proud of that.
 
 Additionally, I am quite happy to have written a program that works in a Clojure environment (on the JVM), in a Clojurescript environment (on node.js via Lumo), and in the browser (with the amazing Klipse plugin). To write one program that works within different environments is exciting.
 
+
 ** design
-Even though this is a simple program, design choices are still required. It's not like I spent days diagramming possible choices, but as I wrote the code I did have to consider a few things.
+Even though this is a simple program, design choices are still required. I didn't spend days making architecture diagrams, but I had a few decisions to make as I wrote the program.
 
 *** algorithm
 I'm not exactly sure this is complex enough to really count as an algorithm, but for lack of a better word, I'll call it one anyway. Besides, the word *algorithm* sounds important and computer-sciency, which is nice.
@@ -52,7 +58,7 @@ Once again, this web page is an exception to the output method. I have written a
 
 * core
 ** ns
-The only dependency that I need is clojure.string because it has the *replace* function, which I will use to manipulate strings in a few places.
+The only dependency that I need is clojure.string because it has the *replace* function, which I will use to build strings.
 
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (ns rbg.core
@@ -60,17 +66,11 @@ The only dependency that I need is clojure.string because it has the *replace* f
 
 #+END_SRC
 
-*** test-ns
+*** test-ns :nx:
 #+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
 (ns rbg.core-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [rbg.core :as rbg]))
-
-#+END_SRC
-
-#+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
-
-(is (= 5 (+ 2 3)))
 
 #+END_SRC
 
@@ -96,6 +96,8 @@ Saturation and Lightness both are specified as percent, so select a random integ
 #+END_SRC
 
 *** colour-tests
+My ~hsl-str~ function uses a precondition to validate the inputs. I simply check that each value is correctly inside the appropriate ranges. I'll write a test to ensure that this validation is indeed working as expected.
+
 #+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
 (deftest hsl-str-validation
   (testing "hsl-str validation"
@@ -115,9 +117,7 @@ Saturation and Lightness both are specified as percent, so select a random integ
 ** base-attributes
 CSS is used to style the lines, and there are a few attributes that I want to set up front.
 
-**vector-effect** forces the stroke of an svg line not to scale. This is important to set because I am using scale transformations on each line in the grid. If I did not set the scaling stroke, I would have to scale the stroke width up or down according to the scale, and that feels less intuitive.
-
-This way, the **stroke-width** is set to 2px, which matches visually.
+**vector-effect** forces the stroke of an svg line not to scale. This is important to set because I will be using scale transformations on each line in the grid. If I did not set the scaling stroke, I would have to scale the stroke width up or down according to the scale, and that feels less intuitive.
 
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (def line-attrs
@@ -139,6 +139,8 @@ Some functions are useful in a few different contexts. For example, both the htm
 #+END_SRC
 
 *** helpers-tests
+My ~key->str~ function has some potentially surprising behaviour. It cuts the ':' off the front of the key to make the string. This is comparable to the ~keyword~ function which takes a string input and adds the ':' to the front. I wrote a simple test to capture the intent of this conversion.
+
 #+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
 (deftest key->str-test
   (is (= (rbg/key->str :adam) "adam")
@@ -147,7 +149,21 @@ Some functions are useful in a few different contexts. For example, both the htm
 #+END_SRC
 
 ** css-compiler
-In my prototype version of rbg, I had a dependency on garden, a clojure library that compiles hiccup-like data structures to css. I thought it would be a useful exercise to eliminate this dependency by writing my own minimal css compiler implementation.
+In my prototype version of rbg, I had a dependency on [[https://github.com/noprompt/garden][garden]], a clojure library that compiles hiccup-like data structures to css. I thought it would be a useful exercise to eliminate this dependency by writing my own minimal css compiler implementation.
+
+The basic idea is to write a function ~my-css~ that compiles vectors like this:
+
+~[:tag {:attr val}]~
+
+into valid css strings like this:
+
+~~~
+tag {
+  attr: val;
+}
+~~~
+
+I also want to be able to pass in a list of css rules into the compiler, so I need to write a predicate function that checks for css-rules. This is to differentiate between a list of rules and a rule, since they will both be seqable pieces of data.
 
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn css-rule?
@@ -158,18 +174,32 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
    (map? (second item))
    (not (empty? (second item)))))
 
+#+END_SRC
+
+CSS rules will always have a map of attribute value pairs. I can write a function that transforms a single attribute value pair into a proper string. Then I can map the function over the rule's attribute map.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn attr->css
   [attr]
   (let [prop (str "  " (key->str (first attr)) ": ")
         val (str (second attr) ";\n")]
     (str prop val)))
 
+#+END_SRC
+
+To create a full css rule string is straightforward at this point. Convert the tag key and attribute map with the proper functions and string them together.
+
+The minimal css compiler can now be built by using basic recursion. If the compiler is passed in a single css rule, tranform it with ~rule->css~. If a list of rules is passed, map the compiler over the list. 
+
+Since a single rule terminates the recursion, this compiler will work on single rules, flat rule lists, and nested rules lists.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn rule->css
   [rule]
   {:pre [(css-rule? rule)]}
   (let [tag (str (key->str (first rule)) " {\n")
-        props (apply str (map attr->css (second rule)))]
-    (str tag props "}")))
+        attrs (apply str (map attr->css (second rule)))]
+    (str tag attrs "}")))
 
 (defn my-css
   [rule]
@@ -182,6 +212,8 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 #+END_SRC
 
 *** css-compiler-tests
+For my minimal compiler, I have written a minimal test that simply checks for correct output given a valid css rule. I also have one test confirming that the predicate-based precondition correctly throws an AssertionError when an invalid data structure is passed into the compiler.
+
 #+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
 (deftest rule->css-validation-test
   (is (thrown? AssertionError (rbg/rule->css [:p]))))
@@ -196,6 +228,18 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 #+END_SRC
 
 ** html-compiler
+My prototype rbg version also used [[https://github.com/weavejester/hiccup][hiccup]] to compile html snippets, a dependency I worked to eliminate for this small project. The ideas behind my html compiler implementation are very similar to how I build the css compiler, so I begin by creating a predicate to check for valid hiccup data structures, which look like this:
+
+~[:tag {:optional map} "inner"]~
+
+The compiled html string is:
+
+~~~
+<tag optional='map'>
+  inner
+</tag>
+~~~
+
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn hiccup?
   [item]
@@ -203,6 +247,11 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
    (vector? item)
    (keyword? (first item))))
 
+#+END_SRC
+
+The key in a hiccup vector corresponds to the html tag, and the optional attributes map can show up as properties inside the opening tag. I created three functions to handle the string creation for tags, attributes, and tags containing properties.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn key->tags
   [key]
   (let [tag (key->str key)
@@ -222,6 +271,13 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
         val (str (second attr) "' ")]
     (str prop val)))
 
+#+END_SRC
+
+The css compiler did not have to consider nested CSS rules, so simply mapping the compiler over a list of rules was sufficient to build the desired structure. The html compiler must handle the more complicated case of having both lists of hiccup items as well as nested hiccup items. So, the ~hiccup->html~ function contains a cond to handle the various possibilities.
+
+The compiler is built in a simple manner by either compiling the single hiccup item or calling the compiler recursively over a list of hiccup items.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (declare my-html)
 (defn hiccup->html
   [[k m & content]]
@@ -251,6 +307,10 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 #+END_SRC
 
 ** svg-elements
+Now that I have a css and html compiler, I can create functions that build up the hiccup structure for my background. I will use svg to contain the image and can embed the css in a CDATA tag inside the svg, which I can also wrap up into a function.
+
+The background colour can be controlled easily by drawing a rectangle element over the entire svg, so I need a rectangle function.
+
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn svg
   [[w h sc] content]
@@ -273,6 +333,13 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
   [:rect {:width w
           :height h}])
 
+#+END_SRC
+
+When I created my prototype, I handled line moves by wrapping every line element in a group which had a translate transformation applied to it. This worked ok, but creates very large svg files since every line element has both a <g> tag and the line tag. To keep the data created smaller, I changed my approach to line movement by creating a move-line function. 
+
+The ~move-line~ function works by adding the x and y translation directly to the line element's properties. This elminates the need for group tags in the final SVG, keeping the size down.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn line
   [a b]
   (let [[x1 y1] a
@@ -292,6 +359,10 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 #+END_SRC
 
 ** generator
+All of the pieces are built so I can now wire them together with some generators. First, I generate the background data by creating a grid according to the width, height, and cell size values. Each cell will either have a forward-slash line (/) or backslash line (\), randomly selected. This is handled by the for construction in the ~gen-data~ function. 
+
+Clojure's vectors are like a hash map mapping indices to values, so you can randomly select either line with ~(get lines (rand-int 2))~.
+
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn gen-data
   [w h sc]
@@ -303,6 +374,11 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
            y (range (/ h sc))]
        (move-line [x y] (get lines (rand-int 2)))))))
 
+#+END_SRC
+
+The css is just randomly selected colours for the lines and the background. To create the final background data structure, all I have to do is wrap the data and css with the svg-style and svg functions defined earlier.
+
+#+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn gen-css
   []
   (let [bg-col (random-colour)
@@ -320,6 +396,8 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 #+END_SRC
 
 *** generator-tests
+I placed a restriction on the cell scale size to prevent the user from creating single pixel cells. Since the program generates line elements for every cell, the total amount of data generated can grow rapidly when you specify a large image size and small scale. 5px is the minimum size enforced by a precondition check. This test confirms that the precondition validation is working correctly.
+
 #+BEGIN_SRC clojure :tangle ./test/rbg/core_test.cljc
 (deftest gen-bg-validation-test
   (testing "gen-bg input validation"
@@ -330,7 +408,9 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
 
 #+END_SRC
 
-** -main
+** -main :nx:
+The main namespace is only used in clj/cljs on the desktop. In the browser, gen-bg is called directly.
+
 #+BEGIN_SRC clojure :tangle ./src/rbg/core.cljc
 (defn str->int [s]
   #?(:clj  (java.lang.Integer/parseInt s)
@@ -350,7 +430,30 @@ In my prototype version of rbg, I had a dependency on garden, a clojure library 
      (println (my-html (gen-bg w h sc))))))
 
 #+END_SRC
-* run
+** -main-klipse
+The -main function in the context of this post is built to inject the svg directly into the DOM. On the desktop, this following snippet is not included in the source code as it has no meaning in that context.
+
+This code selects the canvas div and injects the svg.
+
+#+BEGIN_SRC clojure
+(def bg (gen-bg 300 200 10))
+(defn -main []
+  (let [canvas (js/document.getElementById "canvas")]
+    (set! (.-innerHTML canvas) (my-html bg))))
+
+(do (-main) nil)
+
+#+END_SRC
+
+The result of all that hard work:
+
+#+BEGIN_SRC clojure
+[:div#canvas]
+#+END_SRC
+
+I'm quite proud of that. :)
+
+* run :nx:
 You can run rbg in your terminal using clj:
 
 Navigate to the project's top-level folder (where deps.edn file is) and run: 
@@ -368,8 +471,7 @@ CAUTION: a small cell size will result in a very large SVG file. Recommmended mi
 You can also run this program with a Clojurescript environment. I like lumo:
 
 ~lumo --classpath src -m rbg.core~
-
-* scratch
+* scratch :nx:
 #+BEGIN_SRC clojure
 (load-file "src/rbg/core.cljc")
 (load-file "test/rbg/core_test.cljc")
